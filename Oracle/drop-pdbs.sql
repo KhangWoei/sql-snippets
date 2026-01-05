@@ -1,13 +1,10 @@
 BEGIN
-    BEGIN
-        EXECUTE IMMEDIATE 'ALTER PLUGGABLE DATABASE ' || :pdb || '  CLOSE IMMEDIATE';
-    EXCEPTION
-        WHEN OTHERS THEN
-            --ORA-65020: Pluggable database string already closed
-            IF SQLCODE NOT IN (-65020) THEN
-                RAISE;
+      FOR pdb IN (SELECT name, open_mode FROM v$PDBS WHERE name LIKE :pattern) LOOP
+            IF pdb.open_mode != 'MOUNTED' THEN
+                EXECUTE IMMEDIATE 'ALTER PLUGGABLE DATABASE ' || pdb.name || ' CLOSE IMMEDIATE';
             END IF;
-    END;
 
-    EXECUTE IMMEDIATE 'DROP PLUGGABLE DATABASE ' || :pdb || ' INCLUDING DATAFILES';
+            EXECUTE IMMEDIATE 'DROP PLUGGABLE DATABASE ' || pdb.name || ' INCLUDING DATAFILES';
+      END LOOP;
 END;
+  
